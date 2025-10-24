@@ -29,6 +29,7 @@ function love.draw()
     love.graphics.setShader(shader_light)
         love.graphics.draw(image, 0, 0)
     love.graphics.setShader()
+
     love.graphics.print("Press Left Mouse Button to spawn light explosion", 10, 10)
     love.graphics.print("Press Right Mouse Button to move static light", 10, 30)
 end

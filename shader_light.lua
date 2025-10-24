@@ -44,10 +44,9 @@ vec4 effect(vec4 color, Image image, vec2 uvs, vec2 screen_coords){
 ]]
 
 
--- Internal state
-local light_shader = nil
 local MAX_LIGHTS = 64
--- User-facing static lights (power in [0..100], higher = brighter)
+
+local light_shader = nil
 StaticLights = {}
 Explosions = {}
 TorchLights = {}
@@ -65,6 +64,14 @@ local function LightToShaderPower(userPower)
 end
 
 
+-- Updates the screen_size uniform when the window is resized.
+function ShaderLightModule.onResize(w, h)
+    if light_shader then
+        light_shader:send("screen_size", {w, h})
+    end
+end
+
+
 -- Loads and initializes the light shader, sets the screen size,
 -- and adds default static lights.
 ---- Returns the shader object.
@@ -79,18 +86,18 @@ function ShaderLightModule.Load()
     -- Seed default static lights via AddStaticLights
     ShaderLightModule.AddStaticLights(
         love.graphics.getWidth() / 3, love.graphics.getHeight() / 3,
-        {1.0, 1.0, 1.0},
-        60.0
+        60.0,
+        {1.0, 1.0, 1.0}
     )
     ShaderLightModule.AddStaticLights(
         love.graphics.getWidth() * 0.85, love.graphics.getHeight() * 0.75,
-        {1.0, 0.3, 0.3},
-        70.0
+        70.0,
+        {1.0, 0.3, 0.3}
     )
     ShaderLightModule.AddStaticLights(
         love.graphics.getWidth() / 2, love.graphics.getHeight() / 2,
-        {0.0, 0.0, 1.0},
-        80.0
+        80.0,
+        {0.0, 0.0, 1.0}
     )
 
     ShaderLightModule.spawnTorch(100, 500, 60, 5.0, {infinite = true, diffuse={1.0, 0.85, 0.5}})
@@ -100,9 +107,9 @@ end
 
 
 -- Adds a static light and returns its index (1..N).
----- Accepts parameters (x, y, [diffuse], power).
+---- Accepts parameters (x, y, power, [diffuse]).
 ---- Returns the index or nil if the limit is reached.
-function ShaderLightModule.AddStaticLights(x, y, diffuse, power)
+function ShaderLightModule.AddStaticLights(x, y, power, diffuse)
     if #StaticLights >= MAX_LIGHTS then return nil end
 
     local entry = {
@@ -118,18 +125,18 @@ end
 
 -- Deletes a static light by index (1..N).
 ---- Returns true on success, false if index is invalid.
-function ShaderLightModule.DeleteStaticLight(index)
+function ShaderLightModule.RemoveStaticLight(index)
     if not StaticLights[index] then return false end
     table.remove(StaticLights, index)
     return true
 end
 
-
--- Updates the screen_size uniform when the window is resized.
-function ShaderLightModule.onResize(w, h)
-    if light_shader then
-        light_shader:send("screen_size", {w, h})
-    end
+-- Deletes a torch light by index (1..N).
+---- Returns true on success, false if index is invalid.
+function ShaderLightModule.RemoveTorchLight(index)
+    if not TorchLights[index] then return false end
+    table.remove(TorchLights, index)
+    return true
 end
 
 
@@ -275,18 +282,17 @@ end
 
 
 -- Spawns a torch light entry and returns its index in TorchLights.
--- Parameters:
---   intensity (0..100) - perceived brightness mapped to shader power via LightToShaderPower
---   duration (seconds) - flicker time before freezing; ignored if opts.infinite == true
---   opts:
---     diffuse {r,g,b}  - base color (unchanged by intensity mapping)
---     infinite boolean - if true, torch flickers forever
---     brightness (0..1)- optional base color brightness used by flicker (default 1.0)
+---- Parameters:
+----   intensity (0..100) - perceived brightness mapped to shader power via LightToShaderPower
+----   duration (seconds) - flicker time before freezing; ignored if opts.infinite == true
+----   opts:
+----     diffuse {r,g,b}  - base color (unchanged by intensity mapping)
+----     infinite boolean - if true, torch flickers forever
+----     brightness (0..1)- optional base color brightness used by flicker (default 1.0)
 function ShaderLightModule.spawnTorch(x, y, intensity, duration, opts)
     local t = opts or {}
     t.x = x or love.graphics.getWidth() * 0.5
     t.y = y or love.graphics.getHeight() * 0.5
-    -- User intensity now 0..100, converted to shader power
     local userInt = math.max(0.0, math.min(intensity or 100.0, 100.0))
     t.basePower = LightToShaderPower(userInt)
     -- Keep diffuse unchanged; brightness factor for color can be customized via opts.brightness
@@ -300,8 +306,6 @@ end
 
 -- Updates state (explosions) and sends all lights to the shader.
 function ShaderLightModule.update(dt)
-    if not light_shader then return end
-
     local idx = 0
 
     -- Send static lights
@@ -357,4 +361,3 @@ end
 
 
 return ShaderLightModule
-
