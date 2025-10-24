@@ -3,12 +3,12 @@
 local LightModule = require("shader_light")
 
 
-local shader_light = nil
-local image = nil
+local shader_light = {}
+local image = {}
 
 
 function love.load()
-    shader_light = LightModule.Load()
+    shader_light = LightModule.load()
     image = love.graphics.newImage("assets/pics/town.png")
 end
 

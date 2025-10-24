@@ -46,7 +46,7 @@ vec4 effect(vec4 color, Image image, vec2 uvs, vec2 screen_coords){
 
 local MAX_LIGHTS = 64
 
-local light_shader = nil
+local light_shader = {}
 StaticLights = {}
 Explosions = {}
 TorchLights = {}
@@ -75,7 +75,7 @@ end
 -- Loads and initializes the light shader, sets the screen size,
 -- and adds default static lights.
 ---- Returns the shader object.
-function ShaderLightModule.Load()
+function ShaderLightModule.load()
     light_shader = love.graphics.newShader(SHADER_LIGHT_CODE)
     if light_shader == nil then
         error("Failed to load light shader")
